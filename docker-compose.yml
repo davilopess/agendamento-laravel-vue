@@ -1,0 +1,67 @@
+version: "3.7"
+services:
+  ui:
+    container_name: ui
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    volumes:
+      - './ui:/app'
+      - '/app/node_modules'
+    restart: unless-stopped
+    environment:
+      VUE_APP_LARAVEL: app-laravel
+    ports:
+      - '8081:8080'
+    networks:
+      - backend
+  app:
+    container_name: app-docker
+    image: php-fpm
+    build:
+      args:
+        user: dockerd
+        uid: 1000
+      context: ./php-fpm
+    restart: unless-stopped
+    working_dir: /var/www/projeto
+    volumes:
+      - ./projeto:/var/www/projeto
+    networks:
+      - backend
+  nginx:
+    image: nginx:1.17-alpine
+    restart: unless-stopped
+    container_name: nginx-docker
+    user: root
+    ports:
+      - 8021:80
+    volumes:
+      - ./projeto:/var/www/projeto
+      - ./nginx/sites:/etc/nginx/conf.d
+      - ./nginx/logs:/var/log/nginx
+    hostname: app-laravel
+    networks:
+      - backend
+  db:
+    image: mysql
+    container_name: db-docker
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    networks:
+      - backend
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: docker
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+
+networks:
+  backend:
+    driver: bridge
+volumes:
+  db_data:
+    driver: local
